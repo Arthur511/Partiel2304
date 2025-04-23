@@ -7,10 +7,15 @@ public class Score : MonoBehaviour
 {
     
     public int CurrentScore = 0;
+    
 
     public void AddScore(int Combo)
     {
         CurrentScore += Combo * 500;
     }
 
+    public void AddScoreDuringFewerMode(int Combo)
+    {
+        CurrentScore += Combo * 2000;
+    }
 }

@@ -4,6 +4,8 @@ using UnityEngine;
 public class BlockManager : MonoBehaviour
 {
 
+    [SerializeField] GameManager gameManager;
+
     [SerializeField] List<GameObject> _block;
     [SerializeField] Transform _spawnPosition;
 
@@ -16,84 +18,57 @@ public class BlockManager : MonoBehaviour
 
     List<Block> _blocksChain = new List<Block>();
     Block _lastBlockInChain;
+    [SerializeField] int _layerBlock;
 
     [SerializeField] Score _scoreUi;
     [SerializeField] UIManager _uiManager;
-    /*int _nbBlockStart = 15;
-    int _currentNbBlockStart;
-    public int CurrentNbBlockStart { 
-        get => _currentNbBlockStart;
-        set
-        {
-            _currentNbBlockStart = value;
-        }
-    }
-    public int NbBlockStart
-    {
-        get => _nbBlockStart;
-        set
-        {
-            _nbBlockStart = value;
-        }
-    }
+    public List<Star> Stars;
+
+    [SerializeField] Fewer _fewerUi;
+    [HideInInspector] public bool IsFewer = false;
 
 
-    
-    float _spawnDelay = 0.5f;
-    float _currentSpawnDelay = 0;
-    public float CurrentSpawnDelay { 
-        get => _currentSpawnDelay;
-        set 
-        {
-            _currentSpawnDelay = value;
-        } 
-    }
-    public float SpawnDelay {
-        get => _spawnDelay; 
-        set 
-        { 
-            _spawnDelay = value;
-        } 
-    }*/
     private void Update()
     {
-        if (Input.GetMouseButton(0))
+        if (!gameManager.IsPaused)
         {
-            RaycastHit2D hit2D = Physics2D.Raycast(Camera.main.ScreenToWorldPoint(Input.mousePosition), Vector2.zero);
-            if (hit2D.collider != null)
+            if (Input.GetMouseButton(0))
             {
-                if(hit2D.collider.gameObject.TryGetComponent<Block>(out Block component))
+                RaycastHit2D hit2D = Physics2D.Raycast(Camera.main.ScreenToWorldPoint(Input.mousePosition), Vector2.zero, 1, _layerBlock);
+                if (hit2D.collider != null)
                 {
-                    Debug.Log("Touchez !!");
-                    if (_blocksChain.Count == 0)
+                    if (hit2D.collider.gameObject.TryGetComponent<Block>(out Block component))
                     {
-                        _blocksChain.Add(component);
-                        _lastBlockInChain = component;
+                        if (_blocksChain.Count == 0)
+                        {
+                            _blocksChain.Add(component);
+                            _lastBlockInChain = component;
+                            component.BecomeSelected();
+                        }
+                        else if (_blocksChain.Count > 0 && component.Type == _lastBlockInChain.Type)
+                        {
+                            Debug.Log("Un Autre");
+                            _blocksChain.Add(component);
+                            _lastBlockInChain = component;
+                            component.BecomeSelected();
+                        }
                     }
-                    else if (_blocksChain.Count > 0 && component.Type == _lastBlockInChain.Type)
-                    {
-                        Debug.Log("Un Autre");
-                        _blocksChain.Add(component);
-                        _lastBlockInChain = component;
-                    }
+                }
+            }
+
+            if (Input.GetMouseButtonUp(0))
+            {
+                DestroyChains();
+            }
+            foreach (Star star in Stars)
+            {
+                if (_scoreUi.CurrentScore >= star.floorPoint)
+                {
+                    star.BecomeReached();
                 }
             }
         }
 
-        if (Input.GetMouseButtonUp(0))
-        {
-            if (_blocksChain.Count > 0)
-            {
-                _scoreUi.AddScore(_blocksChain.Count);
-                _uiManager.RefreshScoreUI();
-                for (int i = 0; i < _blocksChain.Count; i++)
-                {
-                    Block block = _blocksChain[i];
-                    Destroy(block.gameObject);
-                    _blocksChain.Clear();
-                }
-            }
-        }
     }
 
     public void GenerateNewBlocks()
@@ -102,14 +77,33 @@ public class BlockManager : MonoBehaviour
         Instantiate(_block[index].transform, _spawnPosition.position + new Vector3(Random.Range(-3, 3), 0, 0), Quaternion.identity);
     }
 
-    public void SnapOneBlock()
-    {
-
-    }
-
     public void DestroyChains()
     {
-        
+        if (_blocksChain.Count > 0)
+        {
+            if (!IsFewer)
+            {
+                _scoreUi.AddScore(_blocksChain.Count);
+                _uiManager.RefreshScoreUI();
+                _fewerUi.AddFewerPoints(_blocksChain.Count);
+                _uiManager.RefreshFewerUI();
+            }
+            else
+            {
+                _scoreUi.AddScoreDuringFewerMode(_blocksChain.Count);
+                _uiManager.RefreshScoreUI();
+            }
+            for (int i = 0; i < _blocksChain.Count; i++)
+            {
+                Block block = _blocksChain[i];
+                Destroy(block.gameObject);
+                _blocksChain.Clear();
+            }
+        }
+        if (_fewerUi.CurrentValue == 100)
+        {
+            IsFewer = true;
+        }
     }
 
 }
